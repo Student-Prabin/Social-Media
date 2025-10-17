@@ -1,19 +1,20 @@
-{
-  "builds": [
-    {
-      "src": "server/inngest/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "server/models/**"
-        ]
+  {
+    "version": 2,
+    "builds": [
+      {
+        "src": "server.js",
+        "use": "@vercel/node",
+        "config": {
+          "includeFiles": [
+            "dist/**"
+          ]
+        }
       }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server/server.js"
-    }
-  ]
-}
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "server.js"
+      }
+    ]
+  }
