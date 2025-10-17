@@ -4,7 +4,7 @@ import 'dotenv/config';
 import connectDB from './configs/db.js';
 import { inngest, functions } from './inngest/index.js'
 const app = express();
-
+import { serve } from 'inngest/express';
 await connectDB();
 
 app.use(express.json());
