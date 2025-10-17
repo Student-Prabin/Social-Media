@@ -21,8 +21,9 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/', (req, res) => res.send('Server Running'));
+
 // Set up the "/api/inngest" (recommended) routes with the serve handler
-app.use("/api/in ngest", serve({ client: inngest, functions }));
+app.use("/api/inngest", serve({ client: inngest, functions }));
 
 const PORT = process.env.PORT || 4000;
 
