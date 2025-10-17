@@ -8,7 +8,7 @@ export const inngest = new Inngest({ id: "socialmedia-app" });
 // Inngest function to save a user to database
 const syncUserCreation = inngest.createFunction(
   { id: 'sync-user-from-clerk' },
-  { evemt: 'clerk/user.created' },
+  { event: 'clerk/user.created' },
   async ({ event }) => {
     const { _id, first_name, last_name, email_addresses, image_url } = event.data;
     let username = email_addresses[0].email_address.split('@')[0];
@@ -31,7 +31,7 @@ const syncUserCreation = inngest.createFunction(
 // Inngest function to update a user to database
 const syncUserUpdation = inngest.createFunction(
   { id: 'update-user-from-clerk' },
-  { evemt: 'clerk/user.updated' },
+  { event: 'clerk/user.updated' },
   async ({ event }) => {
     const { _id, first_name, last_name, email_addresses, image_url } = event.data;
 
@@ -48,7 +48,7 @@ const syncUserUpdation = inngest.createFunction(
 // Inngest function to delete a user to database
 const syncUserDeletion = inngest.createFunction(
   { id: 'delete-user-from-clerk' },
-  { evemt: 'clerk/user.deleted' },
+  { event: 'clerk/user.deleted' },
   async ({ event }) => {
     const { _id } = event.data;
 
