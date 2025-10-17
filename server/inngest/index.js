@@ -2,9 +2,9 @@ import { Inngest } from "inngest";
 import User from "../models/user.js";
 
 // Create a client to send and receive events
-export const inngest = new Inngest({ id: "my-app" });
+export const inngest = new Inngest({ id: "social-network" });
 
-// --- Inngest function: create user from Clerk ---
+// create user from Clerk 
 const syncUserCreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
@@ -34,7 +34,7 @@ const syncUserCreation = inngest.createFunction(
   }
 );
 
-// --- Inngest function: update user from Clerk ---
+//  update user from Clerk
 const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
@@ -56,7 +56,7 @@ const syncUserUpdation = inngest.createFunction(
   }
 );
 
-// --- Inngest function: delete user from Clerk ---
+// delete user from Clerk
 const syncUserDeletion = inngest.createFunction(
   { id: "delete-user-with-clerk" },
   { event: "clerk/user.deleted" },
