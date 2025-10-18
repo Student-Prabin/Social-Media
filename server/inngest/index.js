@@ -24,7 +24,7 @@ const syncUserCreation = inngest.createFunction(
 
     // Upsert: create if not exists, do nothing if exists
     await User.updateOne(
-      { _id: id },
+      // { _id: id },
       {
         $setOnInsert: {
           _id: id,
