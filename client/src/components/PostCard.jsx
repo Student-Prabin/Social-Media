@@ -3,12 +3,13 @@ import moment from "moment"
 import { dummyUserData } from "../assets/assets.js";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 const PostCard = ({ post }) => {
   const nav = useNavigate();
   const postWithHashtags = post.content.replace(/(#\w+)/g, '<span class="text-indigo-600">$1</span>');
 
   const [likes, setLikes] = useState(post.likes_count);
-  const currentUsers = dummyUserData;
+  const currentUsers = useSelector((state) => state.user.value);
 
   const handleLike = async () => {
 

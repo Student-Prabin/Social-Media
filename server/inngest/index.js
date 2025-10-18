@@ -8,7 +8,7 @@ import sendEmail from "../configs/nodeMailer.js";
 // Create Inngest client
 export const inngest = new Inngest({ id: "socialmedia-app" });
 
-/** 1️⃣ Sync user creation */
+/* Sync user creation */
 const syncUserCreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
@@ -17,16 +17,20 @@ const syncUserCreation = inngest.createFunction(
     let username = email_addresses[0].email_address.split("@")[0];
 
     // Check availability
-    const existing = await User.findOne({ username });
-    if (existing) username += Math.floor(Math.random() * 10000);
+    const user = await User.findOne({ username });
+    if (user) {
+      username + Math.floor(Math.random() * 10000);
+    }
 
-    await User.create({
+
+    const userData = {
       _id: id,
       email: email_addresses[0].email_address,
       full_name: `${first_name} ${last_name}`,
       profile_picture: image_url,
       username,
-    });
+    }
+    await User.create(userData)
   }
 );
 
@@ -37,11 +41,12 @@ const syncUserUpdation = inngest.createFunction(
   async ({ event }) => {
     const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
-    await User.findByIdAndUpdate(id, {
-      email: email_addresses[0].email_address,
-      full_name: `${first_name} ${last_name}`,
+    const updatedUserData = {
+      email: email_addresses[0].address,
+      full_name: first_name + ' ' + last_name,
       profile_picture: image_url,
-    });
+    }
+    await User.findByIdAndUpdate(id, updatedUserData);
   }
 );
 
@@ -50,7 +55,8 @@ const syncUserDeletion = inngest.createFunction(
   { id: "delete-user-from-clerk" },
   { event: "clerk/user.deleted" },
   async ({ event }) => {
-    await User.findByIdAndDelete(event.data.id);
+    const { id } = event.data
+    await User.findByIdAndDelete(id)
   }
 );
 
