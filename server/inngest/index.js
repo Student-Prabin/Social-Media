@@ -26,7 +26,7 @@ const syncUserCreation = inngest.createFunction(
     await User.updateOne(
       // { _id: id },
       {
-        $setOnInsert: {
+        $set: {
           _id: id,
           email: email_addresses[0].email_address,
           full_name: `${first_name} ${last_name}`,
