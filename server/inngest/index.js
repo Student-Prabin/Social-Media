@@ -40,23 +40,38 @@ const syncUserCreation = inngest.createFunction(
 );
 
 /* 2️⃣ Sync user update - idempotent */
-const syncUserUpdation = inngest.createFunction(
+export const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
   async ({ event }) => {
     const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
-    // Only update if the user exists
-    await User.updateOne(
-      { _id: id },
-      {
-        $set: {
-          email: email_addresses[0].email_address,
-          full_name: `${first_name} ${last_name}`,
-          profile_picture: image_url,
-        },
-      }
-    );
+    if (!id) {
+      console.warn("Skipped update: no user ID in event", event.data);
+      return;
+    }
+
+    if (!email_addresses || !email_addresses[0]?.email_address) {
+      console.warn(`Skipped update for user ${id}: no email address`);
+      return;
+    }
+
+    const updateData = {
+      email: email_addresses[0].email_address,
+      full_name: `${first_name || ""} ${last_name || ""}`.trim(),
+      profile_picture: image_url || "",
+    };
+
+    // Use upsert to ensure user exists
+    const result = await User.updateOne({ _id: id }, { $set: updateData }, { upsert: true });
+
+    if (result.upsertedCount > 0) {
+      console.log(`User ${id} did not exist; created new user.`);
+    } else if (result.matchedCount > 0) {
+      console.log(`User ${id} updated successfully.`);
+    } else {
+      console.warn(`Update did not match any user: ${id}`);
+    }
   }
 );
 

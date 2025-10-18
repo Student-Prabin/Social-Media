@@ -9,7 +9,7 @@ import { dummyUserData } from "../assets/assets.js";
 const Layout = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const user = useSelector((state) => state.user.value);
+  const user = dummyUserData
 
   return user ? (
     <div className="w-full  flex h-screen">
