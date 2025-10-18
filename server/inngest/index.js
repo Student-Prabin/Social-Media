@@ -8,7 +8,7 @@ import sendEmail from "../configs/nodeMailer.js";
 // Create Inngest client
 export const inngest = new Inngest({ id: "socialmedia-app" });
 
-/* Sync user creation */
+/* 1️⃣ Sync user creation - idempotent */
 const syncUserCreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
@@ -16,51 +16,61 @@ const syncUserCreation = inngest.createFunction(
     const { id, first_name, last_name, email_addresses, image_url } = event.data;
     let username = email_addresses[0].email_address.split("@")[0];
 
-    // Check availability
-    const user = await User.findOne({ username });
-    if (user) {
-      username + Math.floor(Math.random() * 10000);
+    // Ensure username is unique
+    const existingUserWithUsername = await User.findOne({ username });
+    if (existingUserWithUsername && existingUserWithUsername._id.toString() !== id) {
+      username += Math.floor(Math.random() * 10000);
     }
 
-
-    const userData = {
-      _id: id,
-      email: email_addresses[0].email_address,
-      full_name: `${first_name} ${last_name}`,
-      profile_picture: image_url,
-      username,
-    }
-    await User.create(userData)
+    // Upsert: create if not exists, do nothing if exists
+    await User.updateOne(
+      { _id: id },
+      {
+        $setOnInsert: {
+          _id: id,
+          email: email_addresses[0].email_address,
+          full_name: `${first_name} ${last_name}`,
+          profile_picture: image_url,
+          username,
+        },
+      },
+      { upsert: true }
+    );
   }
 );
 
-/*Sync user update */
+/* 2️⃣ Sync user update - idempotent */
 const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
   async ({ event }) => {
     const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
-    const updatedUserData = {
-      email: email_addresses[0].address,
-      full_name: first_name + ' ' + last_name,
-      profile_picture: image_url,
-    }
-    await User.findByIdAndUpdate(id, updatedUserData);
+    // Only update if the user exists
+    await User.updateOne(
+      { _id: id },
+      {
+        $set: {
+          email: email_addresses[0].email_address,
+          full_name: `${first_name} ${last_name}`,
+          profile_picture: image_url,
+        },
+      }
+    );
   }
 );
 
-/* Sync user deletion */
+/* 3️⃣ Sync user deletion - idempotent */
 const syncUserDeletion = inngest.createFunction(
   { id: "delete-user-from-clerk" },
   { event: "clerk/user.deleted" },
   async ({ event }) => {
-    const { id } = event.data
-    await User.findByIdAndDelete(id)
+    const { id } = event.data;
+    await User.deleteOne({ _id: id }); // safe if user does not exist
   }
 );
 
-/* Send connection request reminder */
+/* 4️⃣ Send connection request reminder */
 const sendNewConnectionRequestReminder = inngest.createFunction(
   { id: "send-new-connection-request-reminder" },
   { event: "app/connection-request" },
@@ -91,7 +101,7 @@ const sendNewConnectionRequestReminder = inngest.createFunction(
     const updated = await Connection.findById(connectionId).populate(
       "from_user_id to_user_id"
     );
-    if (updated.status === "accepted") return;
+    if (!updated || updated.status === "accepted") return;
 
     await sendEmail({
       to: updated.to_user_id.email,
@@ -107,7 +117,7 @@ const sendNewConnectionRequestReminder = inngest.createFunction(
   }
 );
 
-/* Delete story after 24 hours */
+/* 5️⃣ Delete story after 24 hours */
 const deleteStory = inngest.createFunction(
   { id: "story-delete" },
   { event: "app/story.delete" },
@@ -116,11 +126,11 @@ const deleteStory = inngest.createFunction(
     const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
     await step.sleepUntil("wait-for-24-hours", in24Hours);
 
-    await Story.findByIdAndDelete(storyId);
+    await Story.deleteOne({ _id: storyId }); // safe if story already deleted
   }
 );
 
-/* Send unseen messages notification */
+/* 6️⃣ Send unseen messages notification */
 const sendNotificationOfUnseenMessages = inngest.createFunction(
   { id: "send-unseen-messages-notification" },
   { cron: "TZ=America/New_York 0 9 * * *" }, // every day at 9 AM
@@ -149,7 +159,6 @@ const sendNotificationOfUnseenMessages = inngest.createFunction(
     }
   }
 );
-
 
 export const functions = [
   syncUserCreation,
