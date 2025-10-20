@@ -24,11 +24,11 @@ export const getUserData = async (req, res) => {
 export const updateUserData = async (req, res) => {
   try {
     const { userId } = req.auth();
-    let { username, bio, location, full_name } = req.body
+    let { username, bio, location, full_name } = req.body;
 
-    const tempUser = await User.findById(userId)
+    const tempUser = await User.findById(userId);
 
-    !username && (username = tempUser.username)
+    !username && (username = tempUser.username);
 
     if (tempUser.username !== username) {
       const user = await User.findOne({ username })
@@ -47,7 +47,7 @@ export const updateUserData = async (req, res) => {
     const cover = req.files.cover && req.files.cover[0]
 
     if (profile) {
-      const buffer = fs.readFileSync(profile.path)
+      const buffer = fs.readFileSync(profile.path);
       const response = await imageKit.upload({
         file: buffer,
         fileName: profile.originalname
@@ -66,7 +66,7 @@ export const updateUserData = async (req, res) => {
     }
 
     if (cover) {
-      const buffer = fs.readFileSync(cover.path)
+      const buffer = fs.readFileSync(cover.path);
       const response = await imageKit.upload({
         file: buffer,
         fileName: cover.originalname
@@ -87,7 +87,6 @@ export const updateUserData = async (req, res) => {
     const user = await User.findByIdAndUpdate(userId, updatedData, { new: true })
 
     return res.json({ success: true, user, message: "Profile Updated Successfully" })
-    // res.json({ success: true, user })
   } catch (error) {
     console.log(error)
     return res.json({ success: false, message: error.message })
@@ -126,7 +125,7 @@ export const followUser = async (req, res) => {
     const { userId } = req.auth();
     const { id } = req.body;
 
-    const user = await User.findById(userId)
+    const user = await User.findById(userId);
 
     if (user.following.includes(id)) {
       return res.json({ success: false, message: "You are already following this user" })
@@ -135,9 +134,9 @@ export const followUser = async (req, res) => {
     user.following.push(id);
     await user.save();
 
-    const toUser = await User.findById(id)
-    toUser.followers.push(userId)
-    await toUser.save()
+    const toUser = await User.findById(id);
+    toUser.followers.push(userId);
+    await toUser.save();
 
     res.json({ success: true, message: "Now you are following this user" })
 

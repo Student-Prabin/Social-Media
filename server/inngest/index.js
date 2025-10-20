@@ -4,7 +4,6 @@ import Connection from "../models/Connection.js";
 import Story from "../models/Story.js";
 import Message from "../models/Message.js";
 import sendEmail from "../configs/nodeMailer.js";
-import { useDeferredValue } from "react";
 
 // Create Inngest client
 export const inngest = new Inngest({ id: "socialmedia-app" });
@@ -63,54 +62,52 @@ const syncUserDeletion = inngest.createFunction(
   }
 );
 
-// /* 4️⃣ Send connection request reminder */
-// const sendNewConnectionRequestReminder = inngest.createFunction(
-//   { id: "send-new-connection-request-reminder" },
-//   { event: "app/connection-request" },
-//   async ({ event, step }) => {
-//     const { connectionId } = event.data;
-//     const connection = await Connection.findById(connectionId).populate(
-//       "from_user_id to_user_id"
-//     );
-//     if (!connection) return;
+/* Send connection request reminder */
+const sendNewConnectionRequestReminder = inngest.createFunction(
+  { id: "send-new-connection-request-reminder" },
+  { event: "app/connection-request" },
+  async ({ event, step }) => {
+    const { connectionId } = event.data;
+    await step.run('send-connection-request-mail', async () => {
+      const connection = await Connection.findById(connectionId).populate("from_user_id to_user_id");
 
-//     // Send initial email
-//     await sendEmail({
-//       to: connection.to_user_id.email,
-//       subject: "👋 New Connection Request",
-//       body: `
-//         <div style="font-family:Arial,sans-serif;padding:20px;">
-//           <h2>Hi ${connection.to_user_id.full_name},</h2>
-//           <p>You have a new connection request from ${connection.from_user_id.full_name} - @${connection.from_user_id.username}</p>
-//           <p>Click <a href="${process.env.FRONTEND_URL}/connections" style="color:#10b981;">here</a> to accept or reject</p>
-//         </div>
-//       `,
-//     });
+      const subject = "👋 New Connection Request";
+      const body = `<div style="font-family:Arial,sans-serif;padding:20px;">
+          <h2>Hi ${connection.to_user_id.full_name},</h2>
+          <p>You have a new connection request from ${connection.from_user_id.full_name} - @${connection.from_user_id.username}</p>
+          <p>Click <a href="${process.env.FRONTEND_URL}/connections" style="color:#10b981;">here</a> to accept or reject</p>
+        </div>`;
 
-//     // Wait 24 hours and send reminder if still pending
-//     const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
-//     await step.sleepUntil("wait-for-24-hours", in24Hours);
+      await sendEmail({
+        to: connection.to_user_id.email,
+        subject,
+        body
+      })
+    })
 
-//     const updated = await Connection.findById(connectionId).populate(
-//       "from_user_id to_user_id"
-//     );
-//     if (!updated || updated.status === "accepted") return;
 
-//     await sendEmail({
-//       to: updated.to_user_id.email,
-//       subject: "👋 Reminder: Connection Request Pending",
-//       body: `
-//         <div style="font-family:Arial,sans-serif;padding:20px;">
-//           <h2>Hi ${updated.to_user_id.full_name},</h2>
-//           <p>This is a reminder you still have a pending connection request from ${updated.from_user_id.full_name} - @${updated.from_user_id.username}</p>
-//           <p>Click <a href="${process.env.FRONTEND_URL}/connections" style="color:#10b981;">here</a> to accept or reject</p>
-//         </div>
-//       `,
-//     });
-//   }
-// );
+    const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await step.sleepUntil("wait-for-24-hours", in24Hours);
+    await step.run('send-connection-request-reminder', async () => {
+      const connection = await Connection.findById(connectionId).populate("from_user_id to_user_id");
 
-// /* 5️⃣ Delete story after 24 hours */
+      if (!updated || updated.status === "accepted") {
+        return { message: "already accepted" };
+      }
+
+      const subject = "👋 Reminder: Connection Request Pending";
+      const body = `<div style="font-family:Arial,sans-serif;         padding:20px;"><h2>Hi ${updated.to_user_id.full_name},</h2><p>This is a reminder you still have a pending connection request from ${updated.from_user_id.full_name} - @${updated.from_user_id.username}</p><p>Click <a href="${process.env.FRONTEND_URL}/connections" style="color:#10b981;">here</a> to accept or reject</p></div>`
+
+      await sendEmail({
+        to: connection.to_user_id.email,
+        subject,
+        body
+      });
+    });
+  }
+);
+
+// Delete story after 24 hours
 // const deleteStory = inngest.createFunction(
 //   { id: "story-delete" },
 //   { event: "app/story.delete" },
