@@ -193,9 +193,14 @@ export const sendConnectionRequest = async (req, res) => {
     });
 
     if (!connection) {
-      await Connection.create({
+      const newConnection = await Connection.create({
         from_user_id: userId,
         to_user_id: id
+      })
+
+      await inngest.send({
+        name: 'app/connection-request',
+        data: { connectionId: newConnection._id }
       })
       return res.json({ success: true, message: "Connection request sent" })
     } else if (connection && connection.status === 'accepted') {

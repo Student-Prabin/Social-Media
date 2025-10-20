@@ -45,8 +45,6 @@ export const addPost = async (req, res) => {
       post_type
     })
     res.json({ success: true, message: "Post created successfully" })
-
-    return url;
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });

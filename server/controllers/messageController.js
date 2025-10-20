@@ -1,10 +1,11 @@
 import fs from 'fs';
 import imageKit from '../configs/imageKit.js';
 import Message from '../models/Message.js';
+
 // empty object to store  server-side event connections
 const connections = {}
 
-// controller function for the SSE endpoing
+// controller function for the SSE <endpoing></endpoing>
 export const serverSideEventController = (req, res) => {
   const { userId } = req.params;
   console.log('new client connected:', userId);
@@ -14,6 +15,7 @@ export const serverSideEventController = (req, res) => {
   res.setHeader('Cache-Control', "no-cache");
   res.setHeader('Connection-Control', "keep-alive");
   res.setHeader('Access-Control-Allow-Origin ', "*");
+
   // Add client's response to the connections object
   connections[userId] = res
 
@@ -48,8 +50,8 @@ export const sendMessage = async (req, res) => {
       media_url = imageKit.url({
         path: response.filePath,
         transformation: [
-          { quality: auto },
-          { format: webp },
+          { quality: 'auto' },
+          { format: 'webp' },
           { width: '1280' }
 
         ]
