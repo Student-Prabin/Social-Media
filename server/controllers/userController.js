@@ -6,7 +6,6 @@ import fs from "fs"
 import { inngest } from "../inngest/index.js";
 import imageKit from "../configs/imageKit.js";
 
-// getData using userId
 export const getUserData = async (req, res) => {
   try {
     const { userId } = req.auth();

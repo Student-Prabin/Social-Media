@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const nav = useNavigate();
-  const user = dummyUserData
+  const user = useSelector((state) => state.user.value)
   const { signOut } = useClerk();
 
 

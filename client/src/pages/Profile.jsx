@@ -29,18 +29,18 @@ const Profile = () => {
     const token = await getToken()
 
     try {
-      const { data } = await api.post("/api/user/profiles", { profileId: profileId }, {
+      const { data } = await api.post("/api/user/profiles", { profileId }, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      console.log("API Response:", data)
+      console.log("API Response:", data);
       if (data.success) {
-        setUser(data.profile)
-        setPosts(data.posts)
+        setUser(data.profile);
+        setPosts(data.posts);
       } else {
-        toast.error(data.message)
+        toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     }
   }
 
@@ -51,7 +51,6 @@ const Profile = () => {
     }
     else {
       fetchUser(currentUser._id)
-      console.log("User state updated:", user)
     }
   }, [profileId, currentUser]);
 

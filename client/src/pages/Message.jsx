@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux'
 
 const Message = () => {
 
-  const {connections} = useSelector((state)=>state.connections)
+  const { connections } = dummyConnectionsData
   const navigate = useNavigate();
 
   return (
@@ -29,12 +29,12 @@ const Message = () => {
                   <p className='text-sm text-slate-600'>{user.bio}</p>
                 </div>
                 <div className='flex flex-col gap-2 mt-4' >
-                  <button onClick={()=> navigate(`/message/${user._id}`)} className='size-10 flex items-center justify-center text-sm bg-slate-100 
+                  <button onClick={() => navigate(`/message/${user._id}`)} className='size-10 flex items-center justify-center text-sm bg-slate-100 
                   rounded hover:bg-slate-200 text-slate-800 active:scale-95 transition gap-1
                   cursor-pointer'>
                     <MessageSquare className='w-4 h-4' />
                   </button>
-                  <button onClick={()=> navigate(`/profile/${user._id}`)} className='size-10 flex items-center justify-center text-sm bg-slate-100 
+                  <button onClick={() => navigate(`/profile/${user._id}`)} className='size-10 flex items-center justify-center text-sm bg-slate-100 
                   rounded hover:bg-slate-200 text-slate-800 active:scale-95 transition 
                   cursor-pointer'>
                     <Eye className='w-4 h-4' />

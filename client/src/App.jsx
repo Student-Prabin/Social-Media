@@ -21,13 +21,14 @@ const App = () => {
 
 
   useEffect(() => {
-    const fetchdata = async () => {
+    const fetchData = async () => {
       if (user) {
-        getToken().then((token) => console.log(token));
+        const token = await getToken()
+        dispatch(fetchUser(token))
       }
     }
-    fetchdata();
-  }, [user, getToken, dispatch])
+    fetchData()
+  }, [user, getToken, dispatch]);
 
 
   return (
