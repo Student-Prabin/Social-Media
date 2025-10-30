@@ -92,3 +92,40 @@ export const likePost = async (req, res) => {
 
 }
 
+// Add comment to a post
+export const addComment = async (req, res) => {
+  try {
+    const { userId } = req.auth();
+    const { postId, text } = req.body;
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+
+    const comment = { user: userId, text };
+    post.comments.push(comment);
+    await post.save();
+
+    // Populate user data for response
+    const populatedPost = await Post.findById(postId).populate('comments.user', 'full_name profile_picture');
+
+    res.json({ success: true, post: populatedPost });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// Get comments for a post
+export const getComments = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId).populate('comments.user', 'full_name profile_picture');
+    if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+
+    res.json({ success: true, comments: post.comments });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
