@@ -2,7 +2,6 @@ export const protect = async (req, res, next) => {
   try {
     const { userId } = await req.auth();
 
-    console.log(userId);
     if (!userId) {
       return res.json({ success: false, message: "Not Authenticated" });
     }

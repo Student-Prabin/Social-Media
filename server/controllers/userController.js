@@ -175,11 +175,11 @@ export const sendConnectionRequest = async (req, res) => {
 
     // Limit to 20 requests in 24 hours
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const sendConnectionRequests = await Connection.find({
+    const connectionRequests = await Connection.find({
       from_user_id: userId,
       createdAt: { $gt: last24Hours }
     });
-    if (sendConnectionRequests.length >= 20) {
+    if (connectionRequests.length >= 20) {
       return res.json({ success: false, message: "You have sent more than 20 connection requests in the last 24 hours" });
     }
 
@@ -255,7 +255,7 @@ export const acceptConnectionRequest = async (req, res) => {
     await connection.save();
 
 
-    res.json({ success: false, message: "Connection accepted successfully" })
+    res.json({ success: true, message: "Connection accepted successfully" })
   } catch (error) {
     return res.json({ success: false, message: error.message })
   }

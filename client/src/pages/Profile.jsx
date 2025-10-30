@@ -32,7 +32,7 @@ const Profile = () => {
       const { data } = await api.post("/api/user/profiles", { profileId }, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      console.log("API Response:", data);
+
       if (data.success) {
         setUser(data.profile);
         setPosts(data.posts);

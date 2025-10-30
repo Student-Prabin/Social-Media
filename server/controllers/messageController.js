@@ -3,113 +3,143 @@ import imageKit from '../configs/imageKit.js';
 import Message from '../models/Message.js';
 
 // empty object to store  server-side event connections
-const connections = {}
+const connection = {}
 
-// controller function for the SSE <endpoing></endpoing>
-export const serverSideEventController = (req, res) => {
-  const { userId } = req.params;
-  console.log('new client connected:', userId);
+export const sseController = async (req, res) => {
+  try {
+    const { userId } = req.params
+    // console.log("New Client Connected:", userId)
 
-  //set sse headers
-  res.setHeader('Content-Type', "text/event-stream");
-  res.setHeader('Cache-Control', "no-cache");
-  res.setHeader('Connection-Control', "keep-alive");
-  res.setHeader('Access-Control-Allow-Origin ', "*");
+    // ✅ Proper SSE headers
+    res.setHeader("Content-Type", "text/event-stream")
+    res.setHeader("Cache-Control", "no-cache")
+    res.setHeader("Connection", "keep-alive")
+    res.setHeader("Access-Control-Allow-Origin", "*")
 
-  // Add client's response to the connections object
-  connections[userId] = res
+    // ✅ flush headers (some proxies require this)
+    if (res.flushHeaders) res.flushHeaders()
 
-  // send an initial event to the client
-  res.write('log:Connected to SSE stream\n\n');
+    // ✅ Save connection
+    connection[userId] = res
 
-  // handle client disconnect
-  req.on('close', () => {
-    // remove the clients res object from connection array
-    delete connections[userId];
-    console.log('Client disconnected');
+    // ✅ Initial handshake message
+    res.write(`event: log\n`)
+    res.write(`data: Connected to SSE stream for user ${userId}\n\n`)
 
-  })
+    // ✅ Heartbeat (every 30s) to prevent timeouts
+    const heartbeat = setInterval(() => {
+      if (connection[userId]) {
+        res.write(`event: ping\n`)
+        res.write(`data: keep-alive\n\n`)
+      }
+    }, 30000)
 
+    // ✅ Handle disconnect
+    req.on("close", () => {
+      clearInterval(heartbeat)
+      delete connection[userId]
+      // console.log(`Client Disconnected: ${userId}`)
+    })
+
+  } catch (error) {
+    console.error("SSE Error:", error.message)
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: error.message })
+    }
+  }
 }
 
 export const sendMessage = async (req, res) => {
   try {
-    const { userId } = req.auth();
-    const { to_user_id, text } = req.body;
-    const image = req.file;
+    const { userId } = req.auth()
+    const { to_user_id, text } = req.body
+    const image = req.file
 
-    let media_url = '';
-    let message_type = image ? 'image' : 'text';
+    let media_url = ""
+    let message_type = image ? "image" : "text"
 
-    if (message_type === 'image') {
-      const fileBuffer = fs.readFileSync(image.path);
+    if (message_type === "image") {
+      const buffer = fs.readFileSync(image.path)
       const response = await imageKit.upload({
-        file: fileBuffer,
+        file: buffer,
         fileName: image.originalname,
       })
+
       media_url = imageKit.url({
         path: response.filePath,
         transformation: [
-          { quality: 'auto' },
-          { format: 'webp' },
-          { width: '1280' }
-
+          { quality: "auto" },
+          { format: "webp" },
+          { height: "1280" },
         ]
       })
-      const message = await Message.create({
-        from_user_id: userId,
-        to_user_id,
-        text,
-        message_type,
-        media_url
-      })
-      res.json({ success: true, message });
-      // Send message to userId using SSE
-      const messageWithUserData = await Message.findById(message._id).populate('from_user_id');
-      if (connections[to_user_id]) {
-        connections[to_user_id].write(`data${JSON.stringify(messageWithUserData)}\n\n`)
-      }
     }
+
+    const message = await Message.create({
+      from_user_id: userId,
+      to_user_id,
+      text,
+      message_type,
+      media_url
+    })
+
+    // ✅ Populate sender details for frontend use
+    const messageWithUserData = await Message.findById(message._id)
+      .populate("from_user_id", "full_name profile_picture") // select only needed fields
+
+    // ✅ Send HTTP response
+    res.json({ success: true, message: messageWithUserData })
+
+    // ✅ Push to recipient via SSE
+    if (connection[to_user_id]) {
+      console.log(connection[to_user_id])
+      connection[to_user_id].write(`event: message\n`)
+      connection[to_user_id].write(`data: ${JSON.stringify(messageWithUserData)}\n\n`)
+    }
+
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    console.log(error.message)
+    res.json({ success: false, message: error.message })
   }
 }
 
-// getChatMessages
-export const getChatMessages = async (req, res) => {
 
+export const getChatMessages = async (req, res) => {
   try {
-    const { userId } = req.auth();
+
+    const { userId } = req.auth()
     const { to_user_id } = req.body;
 
-    const messages = await Message.find(
-      {
-        $or: [
-          { from_user_id: userId, to_user_id },
-          { from_user_id: to_user_id, userId },
-        ]
-      }).sort({ createdAt: -1 })
 
-    //mark messages as seen
-    await Message.updateMany({ from_user_id: to_user_id, to_user_id: userId }, { seen: true });
-    res.json({ success: true, messages });
+    const messages = await Message.find({
+      $or: [
+        { from_user_id: userId, to_user_id: to_user_id },
+        { from_user_id: to_user_id, to_user_id: userId },
+      ]
+    }).sort({ created_at: -1 })
+
+    await Message.updateMany({ from_user_id: to_user_id, to_user_id: userId }, { seen: true })
+
+
+    res.json({ success: true, messages })
 
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.log(error.message)
+    res.json({ success: false, message: error.message })
   }
 }
 
-export const getUserRecentMessages = async (req, res) => {
+export const getRecentMessages = async (req, res) => {
   try {
-    const { userId } = req.auth();
-    const messages = await Message.find({ to_user_id: userId }.populate('from_user_id to_user_id')).sort({ createdAt: -1 });
 
-    res.json({ success: true, messages });
+    const { userId } = req.auth()
+    const messages = await Message.find({ to_user_id: userId })
+      .populate("from_user_id to_user_id").sort({ created_at: -1 })
+
+    res.json({ success: true, messages })
 
   } catch (error) {
-    res.json({ success: false, message: error.message });
-
+    console.log(error.message)
+    res.json({ success: false, message: error.message })
   }
 }
-

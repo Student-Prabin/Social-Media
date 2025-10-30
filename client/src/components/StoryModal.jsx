@@ -1,8 +1,12 @@
+import { useAuth } from "@clerk/clerk-react";
 import { ArrowLeft, Sparkle, TextIcon, Upload } from "lucide-react";
 import { useState } from "react"
 import toast from "react-hot-toast";
+import api from "../api/axios.js";
 
-const StoryModal = ({ setShowModal, fetchStoriesModal }) => {
+const StoryModal = ({ setShowModal, fetchStories }) => {
+
+  const { getToken } = useAuth();
 
   const bgColors = ['#4f46e5', '#7c3aed', '#db2777', '#e11d48', '#ca8a04', '#0d9488'];
 
@@ -11,16 +15,72 @@ const StoryModal = ({ setShowModal, fetchStoriesModal }) => {
   const [text, setText] = useState("");
   const [media, setMedia] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const MAX_VIDEO_DURATION = 60; //secs
+  const MAX_VIDEO_SIZE = 50; //mb
 
   const handleMediaUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      setMedia(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      if (file.type.startsWith("video")) {
+        if (file.size > MAX_VIDEO_SIZE * 1024 * 1024) {
+          toast.error(`Video size cannot exceed ${MAX_VIDEO_SIZE}MB`)
+          setMedia(null)
+          setPreviewUrl(null)
+          return;
+        }
+        const video = document.createElement('video');
+        video.preload = "metadata"
+        video.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(video.src);
+          if (video.duration > MAX_VIDEO_DURATION) {
+            toast.error("Video duration cannot exceed 1 minute.");
+            setMedia(null);
+            setPreviewUrl(null);
+          } else {
+            setMedia(file);
+            setPreviewUrl(URL.createObjectURL(file));
+            setText('')
+            setMode("media")
+          }
+        }
+        video.src = URL.createObjectURL(file)
+      } else if (file.type.startsWith('image')) {
+        setMedia(file);
+        setPreviewUrl(URL.createObjectURL(file));
+        setText('')
+        setMode("media")
+      }
     }
   }
-
   const handleCreateStory = async () => {
+    const media_type = mode === 'media' ? media.type.startsWith('image') ? 'image' : 'video' : "text";
+    if (media_type === 'text' && !text) {
+      throw new Error("Please Enter some text")
+    }
+    let formData = new FormData();
+    formData.append('content', text);
+    formData.append('media_type', media_type);
+    formData.append('media', media);
+    formData.append('background_color', background);
+
+    const token = await getToken();
+
+    try {
+      const { data } = await api.post('/api/story/create', formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      console.log(data)
+      if (data.success) {
+        setShowModal(false);
+        toast.success("Story created successfully");
+        fetchStories();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+
 
   }
 
@@ -62,20 +122,18 @@ const StoryModal = ({ setShowModal, fetchStoriesModal }) => {
             <TextIcon size={18} />Text
           </button>
           <label className={`flex-1 flex items-center justify-center gap-2 p-2 rounded cursor-pointer ${mode === 'media' ? "bg-white text-black" : "bg-zinc-800"}`}>
-            <input onChange={(e) => { handleMediaUpload(e); setMode('media'); }} type="file" accept="image/*,video/*" className="hidden" />
+            <input onChange={handleMediaUpload} type="file" accept="image/*,video/*" className="hidden" />
             <Upload size={18} />Photo/Video
           </label>
         </div>
         <button onClick={() => toast.promise(handleCreateStory(), {
           loading: 'Saving...',
-          success: <p>Story Added</p>,
-          error: e => <p>{e.message}</p>,
         })} className="flex items-center justify-center gap-2 text-white py-3 mt-4 w-full rounded bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition cursor:pointer">
           <Sparkle size={18} /> Create Story
 
         </button>
       </div>
-    </div>
+    </div >
   )
 }
 export default StoryModal
