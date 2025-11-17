@@ -3,6 +3,12 @@ LinkUp is a full-stack social networking platform where users can share stories,
 
 This project strengthened my skills in authentication, REST APIs, real-time communication, state management, and backend logic.
 
+## Live Demo
+
+- Frontend:   https://link-up-chi.vercel.app/
+- Backend API: https://social-media-pi-gilt.vercel.app/
+
+
 ## Features
 
 - Share and explore short videos and photos
@@ -19,9 +25,5 @@ This project strengthened my skills in authentication, REST APIs, real-time comm
 - Backend: Node.js, Express, MongoDB, Mongoose,  
 - Authentication: Clerk
 
-## Live Demo
-
-- Frontend:   https://link-up-chi.vercel.app/
-- Backend API: https://social-media-pi-gilt.vercel.app/
 
 
